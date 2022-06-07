@@ -1,0 +1,9 @@
+(env-keys ["todoadmin"])
+(env-data { "io_admin_keyset-xyzn_test":
+  { "keys": ["ba54b224d1924dd98403f5c751abdd10de6cd81b0121800bf7bdbdcfaec7388d"], "pred": "keys-all" } })
+
+(begin-tx)
+(load "datastorage.pact")
+(commit-tx)
+
+(typecheck "sensor_store")
