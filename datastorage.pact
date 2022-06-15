@@ -39,7 +39,7 @@
          keyset:keyset)
 (insert device-table device_id {
         "device_id":device_id
-        "name":name
+        ,"name":name
         ,"keyset":keyset
 })
         )
@@ -67,8 +67,8 @@
 
   (insert device-data-table data_id
          { "data_id":data_id
-           "data":data
-         , "device_id":device_id
+         ,"data":data
+         ,"device_id":device_id
          }))
 
 
@@ -86,11 +86,11 @@
 
 
 (insert device-rules-table rule_id
-    { "rule_id":rule_id
-      "rule_name":rule_name
-    , "rule": rule
-    , "device_id":device_id
-    , "action": action
+    {"rule_id":rule_id
+    ,"rule_name":rule_name
+    ,"rule": rule
+    ,"device_id":device_id
+    ,"action": action
     }))
 
     (defun update-device-rule (rule_id:string
