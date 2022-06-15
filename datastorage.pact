@@ -1,26 +1,27 @@
-
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test (read-keyset "io_admin_keyset-xyzn_test"))
+(define-keyset 'io_admin_keyset-xyzn_test1 (read-keyset "io_admin_keyset-xyzn_test1"))
 
 
-(module sensor_store 'io_admin_keyset-xyzn_test
+(module sensor_store2 'io_admin_keyset-xyzn_test1
  @doc "sensor data store."
 
  (defschema device
         @doc "Device Register"
+        device_id:string
         name:string
         keyset:keyset
        )
 
  (defschema device-data
   @doc "Device data"
-  
+  data_id:string
   data:string
   device_id:string
  )
 
  (defschema device-rules
        @doc "Register Rules for device data"
+        rule_id:string
         rule_name:string
         rule:string
         action:string
@@ -35,15 +36,16 @@
 
 (defun new-device(device_id:string
          name:string
-         keyset:keyset) 
+         keyset:keyset)
 (insert device-table device_id {
+        "device_id":device_id
         "name":name
         ,"keyset":keyset
 })
         )
 (defun update-device(device_id:string
                 name:string
-                keyset:keyset) 
+                keyset:keyset)
 (with-read device-table device_id
         {"keyset":=device_keyset
         } (enforce-keyset device_keyset ) )
@@ -53,7 +55,7 @@
        })
                )
 
- (defun new-device-data (id:string
+ (defun new-device-data (data_id:string
                      data:string
                      device_id:string
                      )
@@ -62,15 +64,16 @@
         {"keyset":=device_keyset
 } (enforce-keyset device_keyset ) )
 
- 
-  (insert device-data-table id
-         { "data":data
+
+  (insert device-data-table data_id
+         { "data_id":data_id
+           "data":data
          , "device_id":device_id
          }))
 
 
 
-(defun new-device-rule (id:string
+(defun new-device-rule(rule_id:string
                 device_id:string
                 rule:string
                 rule_name:string
@@ -82,14 +85,15 @@
 } (enforce-keyset device_keyset ) )
 
 
-(insert device-rules-table id
-    { "rule_name":rule_name
+(insert device-rules-table rule_id
+    { "rule_id":rule_id
+      "rule_name":rule_name
     , "rule": rule
     , "device_id":device_id
     , "action": action
     }))
 
-    (defun update-device-rule (id:string
+    (defun update-device-rule (rule_id:string
         device_id:string
         rule:string
         rule_name:string
@@ -101,7 +105,7 @@
 } (enforce-keyset device_keyset ) )
 
 
-(update device-rules-table id
+(update device-rules-table rule_id
 { "rule_name":rule_name
 , "rule": rule
 , "device_id":device_id
@@ -115,20 +119,24 @@
  }{"device_id":device_id , "name":name })
 )
 
+(defun get-account-devices(ks:keyset)
+(select device-table ['device_id, 'name] (where 'keyset (= ks))
+)
+)
 
- (defun read-data (id:string)
+ (defun read-data (data_id:string)
   @doc "Read data by id"
-  (with-read device-data-table id
-             {  
+  (with-read device-data-table data_id
+             {
               "data":=data
              , "device_id":=device_id
              } {"data":data, "device_id": device_id}))
 
-(defun read-rule (id:string)
+(defun read-rule (rule_id:string)
              @doc "Read rule by id"
-             
-             (with-read device-rules-table id
-                        { 
+
+             (with-read device-rules-table rule_id
+                        {
                          "rule_name":=rule_name,
                          "rule":=rule,
                          "action":=action,
@@ -137,6 +145,9 @@
 )
 
   (defun read-device-data(device_id:string)
+  (with-read device-table device_id
+        {"keyset":=device_keyset
+        } (enforce-keyset device_keyset ) )
   (select device-data-table (where 'device_id (= device_id))
   ))
 
