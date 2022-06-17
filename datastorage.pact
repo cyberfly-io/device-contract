@@ -1,8 +1,12 @@
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test3 (read-keyset "io_admin_keyset-xyzn_test3"))
+(define-keyset 'io_admin_keyset-xyzn_test4 (read-keyset "io_admin_keyset-xyzn_test4"))
 
-(module sensor_store4 'io_admin_keyset-xyzn_test3
+(module sensor_store5 GOVERNANCE
  @doc "sensor data store."
+
+
+  (defcap GOVERNANCE ()
+    (enforce-keyset 'io_admin_keyset-xyzn_test4))
 
  (defschema device
         @doc "Device Register"
@@ -129,11 +133,12 @@
 (defun get-device(device_id:string)
  (with-read device-table device_id {
          "name":=name
- }{"device_id":device_id , "name":name })
+         ,"status":=status
+ }{"device_id":device_id , "name":name, "status":status })
 )
 
 (defun get-account-devices(ks:keyset)
-(select device-table ['device_id, 'name] (where 'keyset (= ks))
+(select device-table ['device_id, 'name, 'status] (where 'keyset (= ks))
 )
 )
 
