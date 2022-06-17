@@ -8,6 +8,7 @@
         @doc "Device Register"
         device_id:string
         name:string
+        status:string
         keyset:keyset
        )
 
@@ -32,26 +33,30 @@
  (deftable device-rules-table:{device-rules})
 
 (defcap VERIFY_KEYSET (keyset:keyset)
-    (enforce-guard keyset)
+    (enforce-keyset keyset)
 )
 
 (defun new-device(device_id:string
          name:string
+         status:string
          keyset:keyset)
 (insert device-table device_id {
         "device_id":device_id
         ,"name":name
+        ,"status":status
         ,"keyset":keyset
 })
         )
 (defun update-device(device_id:string
                 name:string
+                status:string
                 keyset:keyset)
 (with-read device-table device_id
         {"keyset":=device_keyset
         }(with-capability (VERIFY_KEYSET device_keyset)
  (update device-table device_id {
                "name":name
+               ,"status":status
                ,"keyset":keyset
        })
 ))
@@ -65,7 +70,9 @@
  @doc "update data"
 (with-read device-table device_id
         {"keyset":=device_keyset
-} (with-capability (VERIFY_KEYSET device_keyset)
+         ,"status":=status} 
+ (enforce (= status 'active) "device inactive")
+(with-capability (VERIFY_KEYSET device_keyset)
  (insert device-data-table data_id
          { "data_id":data_id
          ,"data":data
@@ -84,7 +91,10 @@
 @doc "create new rules"
 (with-read device-table device_id
    {"keyset":=device_keyset
-} (with-capability (VERIFY_KEYSET device_keyset)
+   ,"status":=status
+} 
+(enforce (= status 'active) "device inactive")
+(with-capability (VERIFY_KEYSET device_keyset) 
 (insert device-rules-table rule_id
     {"rule_id":rule_id
     ,"rule_name":rule_name
@@ -103,8 +113,10 @@
 @doc "update rules"
 (with-read device-table device_id
 {"keyset":=device_keyset
-} (with-capability (VERIFY_KEYSET device_keyset)
-
+,"status":=status
+} 
+(enforce (= status 'active) "device inactive")
+(with-capability (VERIFY_KEYSET device_keyset)
 (update device-rules-table rule_id
 { "rule_name":rule_name
 , "rule": rule
