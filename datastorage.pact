@@ -1,8 +1,7 @@
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test1 (read-keyset "io_admin_keyset-xyzn_test1"))
+(define-keyset 'io_admin_keyset-xyzn_test3 (read-keyset "io_admin_keyset-xyzn_test3"))
 
-
-(module sensor_store2 'io_admin_keyset-xyzn_test1
+(module sensor_store4 'io_admin_keyset-xyzn_test3
  @doc "sensor data store."
 
  (defschema device
@@ -32,7 +31,9 @@
  (deftable device-data-table:{device-data})
  (deftable device-rules-table:{device-rules})
 
-
+(defcap VERIFY_KEYSET (keyset:keyset)
+    (enforce-guard keyset)
+)
 
 (defun new-device(device_id:string
          name:string
@@ -48,11 +49,13 @@
                 keyset:keyset)
 (with-read device-table device_id
         {"keyset":=device_keyset
-        } (enforce-keyset device_keyset ) )
-(update device-table device_id {
+        }(with-capability (VERIFY_KEYSET device_keyset)
+ (update device-table device_id {
                "name":name
                ,"keyset":keyset
        })
+))
+
                )
 
  (defun new-device-data (data_id:string
@@ -62,14 +65,13 @@
  @doc "update data"
 (with-read device-table device_id
         {"keyset":=device_keyset
-} (enforce-keyset device_keyset ) )
-
-
-  (insert device-data-table data_id
+} (with-capability (VERIFY_KEYSET device_keyset)
+ (insert device-data-table data_id
          { "data_id":data_id
          ,"data":data
          ,"device_id":device_id
-         }))
+         })
+)))
 
 
 
@@ -82,16 +84,15 @@
 @doc "create new rules"
 (with-read device-table device_id
    {"keyset":=device_keyset
-} (enforce-keyset device_keyset ) )
-
-
+} (with-capability (VERIFY_KEYSET device_keyset)
 (insert device-rules-table rule_id
     {"rule_id":rule_id
     ,"rule_name":rule_name
     ,"rule": rule
     ,"device_id":device_id
     ,"action": action
-    }))
+    })
+)))
 
     (defun update-device-rule (rule_id:string
         device_id:string
@@ -102,15 +103,15 @@
 @doc "update rules"
 (with-read device-table device_id
 {"keyset":=device_keyset
-} (enforce-keyset device_keyset ) )
-
+} (with-capability (VERIFY_KEYSET device_keyset)
 
 (update device-rules-table rule_id
 { "rule_name":rule_name
 , "rule": rule
 , "device_id":device_id
 , "action": action
-}))
+})
+)))
 
 
 (defun get-device(device_id:string)
@@ -145,16 +146,10 @@
 )
 
   (defun read-device-data(device_id:string)
-  (with-read device-table device_id
-        {"keyset":=device_keyset
-        } (enforce-keyset device_keyset ) )
   (select device-data-table (where 'device_id (= device_id))
   ))
 
   (defun read-device-rules(device_id:string)
-  (with-read device-table device_id
-        {"keyset":=device_keyset
-        } (enforce-keyset device_keyset ) )
   (select device-rules-table (where 'device_id (= device_id))
   ))
   )
