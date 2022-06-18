@@ -1,19 +1,18 @@
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test4 (read-keyset "io_admin_keyset-xyzn_test4"))
-
+(define-keyset 'io_admin_keyset-xyzn_test5 (read-keyset "io_admin_keyset-xyzn_test5"))
 (module sensor_store5 GOVERNANCE
  @doc "sensor data store."
 
 
   (defcap GOVERNANCE ()
-    (enforce-keyset 'io_admin_keyset-xyzn_test4))
+    (enforce-keyset 'io_admin_keyset-xyzn_test5))
 
  (defschema device
         @doc "Device Register"
         device_id:string
         name:string
         status:string
-        keyset:keyset
+        guard:guard
        )
 
  (defschema device-data
@@ -36,36 +35,36 @@
  (deftable device-data-table:{device-data})
  (deftable device-rules-table:{device-rules})
 
-(defcap VERIFY_KEYSET (keyset:keyset)
-    (enforce-keyset keyset)
+(defcap ACCOUNT_GUARD (device_id:string)
+
+ (with-read device-table device_id{"guard":=guard}
+   (enforce-guard guard)
+   )
 )
 
 (defun new-device(device_id:string
          name:string
          status:string
-         keyset:keyset)
+         guard:keyset)
 (insert device-table device_id {
         "device_id":device_id
         ,"name":name
         ,"status":status
-        ,"keyset":keyset
+        ,"guard":guard
 })
         )
 (defun update-device(device_id:string
                 name:string
                 status:string
-                keyset:keyset)
-(with-read device-table device_id
-        {"keyset":=device_keyset
-        }(with-capability (VERIFY_KEYSET device_keyset)
+                guard:keyset)
+(with-capability (ACCOUNT_GUARD device_id)
  (update device-table device_id {
                "name":name
                ,"status":status
-               ,"keyset":keyset
+               ,"guard":guard
        })
 ))
 
-               )
 
  (defun new-device-data (data_id:string
                      data:string
@@ -73,10 +72,9 @@
                      )
  @doc "update data"
 (with-read device-table device_id
-        {"keyset":=device_keyset
-         ,"status":=status} 
- (enforce (= status 'active) "device inactive")
-(with-capability (VERIFY_KEYSET device_keyset)
+  {"status":=status}
+ (enforce (= status "active") "device inactive")
+(with-capability (ACCOUNT_GUARD device_id)
  (insert device-data-table data_id
          { "data_id":data_id
          ,"data":data
@@ -94,11 +92,9 @@
                 )
 @doc "create new rules"
 (with-read device-table device_id
-   {"keyset":=device_keyset
-   ,"status":=status
-} 
-(enforce (= status 'active) "device inactive")
-(with-capability (VERIFY_KEYSET device_keyset) 
+  {"status":=status}
+(enforce (= status "active") "device inactive")
+(with-capability (ACCOUNT_GUARD device_id)
 (insert device-rules-table rule_id
     {"rule_id":rule_id
     ,"rule_name":rule_name
@@ -108,26 +104,28 @@
     })
 )))
 
-    (defun update-device-rule (rule_id:string
+(defun update-device-rule (rule_id:string
         device_id:string
         rule:string
         rule_name:string
         action:string
         )
 @doc "update rules"
+
 (with-read device-table device_id
-{"keyset":=device_keyset
-,"status":=status
-} 
-(enforce (= status 'active) "device inactive")
-(with-capability (VERIFY_KEYSET device_keyset)
+  {"status":=status}
+  (enforce (= status "active") "device inactive")
+(with-capability (ACCOUNT_GUARD device_id)
 (update device-rules-table rule_id
 { "rule_name":rule_name
 , "rule": rule
 , "device_id":device_id
 , "action": action
 })
-)))
+)
+  )
+
+)
 
 
 (defun get-device(device_id:string)
@@ -138,7 +136,7 @@
 )
 
 (defun get-account-devices(ks:keyset)
-(select device-table ['device_id, 'name, 'status] (where 'keyset (= ks))
+(select device-table ["device_id", "name", "status"] (where 'guard (= ks))
 )
 )
 
