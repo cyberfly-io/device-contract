@@ -1,17 +1,18 @@
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test5 (read-keyset "io_admin_keyset-xyzn_test5"))
-(module sensor_store5 GOVERNANCE
+(define-keyset 'io_admin_keyset-xyzn_test8 (read-keyset "io_admin_keyset-xyzn_test8"))
+(module sensor_store7 GOVERNANCE
  @doc "sensor data store."
 
 
   (defcap GOVERNANCE ()
-    (enforce-keyset 'io_admin_keyset-xyzn_test5))
+    (enforce-keyset 'io_admin_keyset-xyzn_test8))
 
  (defschema device
         @doc "Device Register"
         device_id:string
         name:string
         status:string
+        account:string
         guard:guard
        )
 
@@ -28,6 +29,7 @@
         rule_name:string
         rule:string
         action:string
+        disabled:bool
         device_id:string
         )
 
@@ -35,36 +37,54 @@
  (deftable device-data-table:{device-data})
  (deftable device-rules-table:{device-rules})
 
-(defcap ACCOUNT_GUARD (device_id:string)
+(defcap DEVICE_GUARD (device_id:string)
 
  (with-read device-table device_id{"guard":=guard}
    (enforce-guard guard)
    )
 )
 
+(defcap ACCOUNT_GUARD(account:string)
+@doc "Verifies account meets format and belongs to caller"
+(enforce (= "k:" (take 2 account)) "For security, only support k: accounts")
+(enforce-guard   
+    (at "guard" (coin.details account))
+)
+)
+
 (defun new-device(device_id:string
          name:string
          status:string
+         account:string
          guard:keyset)
+(with-capability(ACCOUNT_GUARD account)
 (insert device-table device_id {
-        "device_id":device_id
-        ,"name":name
-        ,"status":status
-        ,"guard":guard
+  "device_id":device_id
+  ,"name":name
+  ,"status":status
+  ,"account":account
+  ,"guard":guard
 })
-        )
+)
+)
+
 (defun update-device(device_id:string
                 name:string
-                status:string
-                guard:keyset)
-(with-capability (ACCOUNT_GUARD device_id)
+                status:string)
+(with-capability (DEVICE_GUARD device_id)
  (update device-table device_id {
                "name":name
                ,"status":status
-               ,"guard":guard
        })
 ))
 
+(defun update-device-guard(device_id:string
+  guard:keyset)
+(with-capability (DEVICE_GUARD device_id)
+(update device-table device_id {
+ ,"guard":guard
+})
+))
 
  (defun new-device-data (data_id:string
                      data:string
@@ -74,7 +94,7 @@
 (with-read device-table device_id
   {"status":=status}
  (enforce (= status "active") "device inactive")
-(with-capability (ACCOUNT_GUARD device_id)
+(with-capability (DEVICE_GUARD device_id)
  (insert device-data-table data_id
          { "data_id":data_id
          ,"data":data
@@ -88,17 +108,19 @@
                 device_id:string
                 rule:string
                 rule_name:string
+                disabled:bool
                 action:string
                 )
 @doc "create new rules"
 (with-read device-table device_id
   {"status":=status}
 (enforce (= status "active") "device inactive")
-(with-capability (ACCOUNT_GUARD device_id)
+(with-capability (DEVICE_GUARD device_id)
 (insert device-rules-table rule_id
     {"rule_id":rule_id
     ,"rule_name":rule_name
     ,"rule": rule
+    ,"disabled":disabled
     ,"device_id":device_id
     ,"action": action
     })
@@ -108,6 +130,7 @@
         device_id:string
         rule:string
         rule_name:string
+        disabled:bool
         action:string
         )
 @doc "update rules"
@@ -115,11 +138,12 @@
 (with-read device-table device_id
   {"status":=status}
   (enforce (= status "active") "device inactive")
-(with-capability (ACCOUNT_GUARD device_id)
+(with-capability (DEVICE_GUARD device_id)
 (update device-rules-table rule_id
 { "rule_name":rule_name
 , "rule": rule
 , "device_id":device_id
+,"disabled":disabled
 , "action": action
 })
 )
@@ -135,8 +159,8 @@
  }{"device_id":device_id , "name":name, "status":status })
 )
 
-(defun get-account-devices(ks:keyset)
-(select device-table ["device_id", "name", "status"] (where 'guard (= ks))
+(defun get-account-devices(account:string)
+(select device-table ["device_id", "name", "status"] (where 'account (= account))
 )
 )
 
