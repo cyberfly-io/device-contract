@@ -6,4 +6,4 @@
 (load "datastorage.pact")
 (commit-tx)
 
-(typecheck "sensor_store")
+(typecheck "sensor_store7")

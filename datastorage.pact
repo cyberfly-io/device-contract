@@ -3,6 +3,7 @@
 (module sensor_store7 GOVERNANCE
  @doc "sensor data store."
 
+(use coin)
 
   (defcap GOVERNANCE ()
     (enforce-keyset 'io_admin_keyset-xyzn_test8))
@@ -82,7 +83,7 @@
   guard:keyset)
 (with-capability (DEVICE_GUARD device_id)
 (update device-table device_id {
- ,"guard":guard
+ "guard":guard
 })
 ))
 
