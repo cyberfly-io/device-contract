@@ -1,6 +1,6 @@
 (namespace "free")
 (define-keyset 'io_admin_keyset-xyzn_test8 (read-keyset "io_admin_keyset-xyzn_test8"))
-(module sensor_store7 GOVERNANCE
+(module sensor_store8 GOVERNANCE
  @doc "sensor data store."
 
 (use coin)
@@ -30,7 +30,7 @@
         rule_name:string
         rule:string
         action:string
-        disabled:bool
+        status:string
         device_id:string
         )
 
@@ -109,19 +109,19 @@
                 device_id:string
                 rule:string
                 rule_name:string
-                disabled:bool
+                status:string
                 action:string
                 )
 @doc "create new rules"
 (with-read device-table device_id
-  {"status":=status}
-(enforce (= status "active") "device inactive")
+  {"status":=device_status}
+(enforce (= device_status "active") "device inactive")
 (with-capability (DEVICE_GUARD device_id)
 (insert device-rules-table rule_id
     {"rule_id":rule_id
     ,"rule_name":rule_name
     ,"rule": rule
-    ,"disabled":disabled
+    ,"status":status
     ,"device_id":device_id
     ,"action": action
     })
@@ -131,20 +131,20 @@
         device_id:string
         rule:string
         rule_name:string
-        disabled:bool
+        status:string
         action:string
         )
 @doc "update rules"
 
 (with-read device-table device_id
-  {"status":=status}
-  (enforce (= status "active") "device inactive")
+  {"status":=device_status}
+  (enforce (= device_status "active") "device inactive")
 (with-capability (DEVICE_GUARD device_id)
 (update device-rules-table rule_id
 { "rule_name":rule_name
 , "rule": rule
 , "device_id":device_id
-,"disabled":disabled
+,"status":status
 , "action": action
 })
 )
@@ -181,8 +181,10 @@
                          "rule_name":=rule_name,
                          "rule":=rule,
                          "action":=action,
-                         "device_id":=device_id
-                        } {"rule_name":rule_name, "rule": rule, "action": action, "device_id": device_id})
+                         "device_id":=device_id,
+                         "status":=status
+                        } {"rule_name":rule_name, "rule": rule, "action": action, "device_id": device_id
+                           ,"status":status})
 )
 
   (defun read-device-data(device_id:string)
