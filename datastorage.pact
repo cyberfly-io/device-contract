@@ -1,12 +1,12 @@
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test8 (read-keyset "io_admin_keyset-xyzn_test8"))
+(define-keyset 'io_admin_keyset-xyzn_test9 (read-keyset "io_admin_keyset-xyzn_test9"))
 (module sensor_store8 GOVERNANCE
  @doc "sensor data store."
 
 (use coin)
 
   (defcap GOVERNANCE ()
-    (enforce-keyset 'io_admin_keyset-xyzn_test8))
+    (enforce-keyset 'io_admin_keyset-xyzn_test9))
 
  (defschema device
         @doc "Device Register"
@@ -34,12 +34,21 @@
         device_id:string
         )
 
+  (defschema dashboard-schema 
+    @doc "store dashboard layout and its widget properties"
+    dash_id:string
+    layout:string
+    account:string
+    status:string
+  )
+
  (deftable device-table:{device})
  (deftable device-data-table:{device-data})
  (deftable device-rules-table:{device-rules})
+ (deftable dashboard-table:{dashboard-schema})
+
 
 (defcap DEVICE_GUARD (device_id:string)
-
  (with-read device-table device_id{"guard":=guard}
    (enforce-guard guard)
    )
@@ -194,8 +203,45 @@
   (defun read-device-rules(device_id:string)
   (select device-rules-table (where 'device_id (= device_id))
   ))
+
+  (defun create-dashboard(dash_id:string 
+                          layout:string 
+                          account:string 
+                          status:string)
+  (with-capability(ACCOUNT_GUARD account)
+  (insert dashboard-table dash_id {
+    "dash_id":dash_id
+    ,"layout":layout
+    ,"account":account
+    ,"status":status
+  })
+  )
+  )
+
+  (defun update-dashboard(dash_id:string layout:string account:string status:string)
+  
+  (with-read dashboard-table dash_id {"account":=dash_account
+  }
+  (enforce (= account dash_account) "account not matching")
+  (with-capability(ACCOUNT_GUARD account)
+  (update dashboard-table dash_id {
+    "dash_id":dash_id
+    ,"layout":layout
+    ,"account":account
+    ,"status":status
+  })
+    )
+  )
+  )
+
+  (defun get-dashboard(account:string)
+(with-capability(ACCOUNT_GUARD account)
+(select dashboard-table (where 'account (= account)) )
+)
+)
   )
 
 (create-table device-table)
 (create-table device-data-table)
 (create-table device-rules-table)
+(create-table dashboard-table)
