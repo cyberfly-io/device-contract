@@ -1,6 +1,6 @@
 (namespace "free")
 (define-keyset 'io_admin_keyset-xyzn_test9 (read-keyset "io_admin_keyset-xyzn_test9"))
-(module sensor_store8 GOVERNANCE
+(module sensor_store9 GOVERNANCE
  @doc "sensor data store."
 
 (use coin)
@@ -37,6 +37,7 @@
   (defschema dashboard-schema 
     @doc "store dashboard layout and its widget properties"
     dash_id:string
+    title:string
     layout:string
     account:string
     status:string
@@ -204,13 +205,15 @@
   (select device-rules-table (where 'device_id (= device_id))
   ))
 
-  (defun create-dashboard(dash_id:string 
+  (defun create-dashboard(dash_id:string
+                          title:string
                           layout:string 
                           account:string 
                           status:string)
   (with-capability(ACCOUNT_GUARD account)
   (insert dashboard-table dash_id {
     "dash_id":dash_id
+    ,"title":title
     ,"layout":layout
     ,"account":account
     ,"status":status
@@ -218,7 +221,7 @@
   )
   )
 
-  (defun update-dashboard(dash_id:string layout:string account:string status:string)
+  (defun update-dashboard(dash_id:string title:string layout:string account:string status:string)
   
   (with-read dashboard-table dash_id {"account":=dash_account
   }
@@ -226,6 +229,7 @@
   (with-capability(ACCOUNT_GUARD account)
   (update dashboard-table dash_id {
     "dash_id":dash_id
+    ,"title":title
     ,"layout":layout
     ,"account":account
     ,"status":status
