@@ -239,9 +239,7 @@
   )
 
   (defun get-dashboard(account:string)
-(with-capability(ACCOUNT_GUARD account)
 (select dashboard-table (where 'account (= account)) )
-)
 )
   )
 
