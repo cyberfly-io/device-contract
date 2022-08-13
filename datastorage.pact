@@ -167,7 +167,20 @@
  (with-read device-table device_id {
          "name":=name
          ,"status":=status
- }{"device_id":device_id , "name":name, "status":status })
+ }
+ {"device_id":device_id , "name":name, "status":status })
+)
+
+(defun auth-device(device_id:string)
+ (with-read device-table device_id {
+         "name":=name
+         ,"status":=status
+ }
+ (enforce (= status "active") "device inactive")
+ (with-capability (DEVICE_GUARD device_id)
+ {"device_id":device_id , "name":name, "status":status }
+ )
+ )
 )
 
 (defun get-account-devices(account:string)
