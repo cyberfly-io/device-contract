@@ -4,6 +4,7 @@
  @doc "sensor data store."
 
 (use coin)
+(use free.cyberfly)
 
   (defcap GOVERNANCE ()
     (enforce-keyset 'io_admin_keyset-xyzn_test9))
@@ -50,7 +51,7 @@
 
 
 (defcap DEVICE_GUARD (device_id:string)
- (with-read device-table device_id{"guard":=guard}
+ (with-read device-table device_id{"guard":=guard, "account":=account}
    (enforce-guard guard)
    )
 )
@@ -167,24 +168,26 @@
  (with-read device-table device_id {
          "name":=name
          ,"status":=status
+         , "guard":=guard
  }
- {"device_id":device_id , "name":name, "status":status })
+ {"device_id":device_id , "name":name, "status":status, "guard":guard  })
 )
 
 (defun auth-device(device_id:string)
  (with-read device-table device_id {
          "name":=name
          ,"status":=status
+         ,"guard":=guard
  }
  (enforce (= status "active") "device inactive")
  (with-capability (DEVICE_GUARD device_id)
- {"device_id":device_id , "name":name, "status":status }
+ {"device_id":device_id , "name":name, "status":status, "guard":guard  }
  )
  )
 )
 
 (defun get-account-devices(account:string)
-(select device-table ["device_id", "name", "status"] (where 'account (= account))
+(select device-table ["device_id", "name", "status", "guard"] (where 'account (= account))
 )
 )
 
