@@ -1,13 +1,12 @@
 (namespace "free")
-(define-keyset 'io_admin_keyset-xyzn_test9 (read-keyset "io_admin_keyset-xyzn_test9"))
-(module sensor_store9 GOVERNANCE
- @doc "sensor data store."
+(define-keyset 'cyberfly_team (read-keyset "cyberfly_team"))
+(module cyberfly_devices GOVERNANCE
+ @doc "device data store."
 
 (use coin)
-(use free.cyberfly)
 
   (defcap GOVERNANCE ()
-    (enforce-keyset 'io_admin_keyset-xyzn_test9))
+    (enforce-keyset 'cyberfly_team))
 
  (defschema device
         @doc "Device Register"
@@ -40,6 +39,7 @@
     dash_id:string
     title:string
     layout:string
+    props:string
     account:string
     status:string
   )
@@ -223,7 +223,8 @@
 
   (defun create-dashboard(dash_id:string
                           title:string
-                          layout:string 
+                          layout:string
+                          props:string 
                           account:string 
                           status:string)
   (with-capability(ACCOUNT_GUARD account)
@@ -231,13 +232,14 @@
     "dash_id":dash_id
     ,"title":title
     ,"layout":layout
+    ,"props":props
     ,"account":account
     ,"status":status
   })
   )
   )
 
-  (defun update-dashboard(dash_id:string title:string layout:string account:string status:string)
+  (defun update-dashboard(dash_id:string title:string layout:string props:string account:string status:string)
   
   (with-read dashboard-table dash_id {"account":=dash_account
   }
@@ -247,6 +249,7 @@
     "dash_id":dash_id
     ,"title":title
     ,"layout":layout
+    ,"props":props
     ,"account":account
     ,"status":status
   })
