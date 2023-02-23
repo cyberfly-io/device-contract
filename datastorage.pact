@@ -191,6 +191,11 @@
 )
 )
 
+(defun get-all-devices()
+(with-capability (GOVERNANCE)
+ (select device-table ["device_id", "name", "status", "account"] (where 'status (= "active"))
+)))
+
  (defun read-data (data_id:string)
   @doc "Read data by id"
   (with-read device-data-table data_id
