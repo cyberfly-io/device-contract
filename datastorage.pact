@@ -316,7 +316,7 @@
              ,"pubkey":=pubkey
              } {"account":account, "pubkey": pubkey}))
   
-  (defun create-contacts(contact_id:string
+  (defun create-contact(contact_id:string
               account:string 
               label:string
               created_by:string)
