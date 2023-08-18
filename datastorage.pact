@@ -320,7 +320,7 @@
               account:string 
               label:string
               created_by:string)
-            (with-capability(ACCOUNT_GUARD account)
+            (with-capability(ACCOUNT_GUARD created_by)
             (insert contacts-table contact_id {
             "contact_id":contact_id
             ,"account":account
