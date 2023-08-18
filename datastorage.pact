@@ -1,5 +1,5 @@
 (namespace "free")
-(define-keyset 'cyberfly_team (read-keyset "cyberfly_team"))
+(define-keyset "free.cyberfly_team" (read-keyset "cyberfly_team"))
 (module cyberfly_devices GOVERNANCE
  @doc "device data store."
 
@@ -50,13 +50,13 @@
     pubkey:string
     )
 
-  (defschema contacts-schema
-    @doc "Store users contacts to chat"
-    contact_id:string
-    account:string
-    label:string
-    created_by:string
-    )
+    (defschema contacts-schema
+      @doc "Store users contacts to chat"
+      contact_id:string
+      account:string
+      label:string
+      created_by:string
+      )
 
 
  (deftable device-table:{device})
@@ -282,14 +282,13 @@
   (defun get-dashboard(account:string)
 (select dashboard-table (where 'account (= account)) )
 )
-  )
 
-  (defun create-chat-registry(
-    account:string 
-    pubkey:string)
+(defun create-chat-registry(
+  account:string 
+  pubkey:string)
 (with-capability(ACCOUNT_GUARD account)
 (insert chat-registry-table account {
-,"account":account
+"account":account
 ,"pubkey":pubkey
 })
 )
@@ -302,7 +301,7 @@
 (enforce (= account registry_account) "un authorized")
 (with-capability(ACCOUNT_GUARD account)
 (update chat-registry-table account {
-  ,"account":account
+  "account":account
   ,"pubkey":pubkey
 })
   )
@@ -314,46 +313,43 @@
   (with-read chat-registry-table account
              {
               "account":=account
-             , "pubkey":=pubkey
+             ,"pubkey":=pubkey
              } {"account":account, "pubkey": pubkey}))
-
-
-(defun create-contacts(contact_id:string
-  account:string 
-  label:string
-  created_by:string)
-(with-capability(ACCOUNT_GUARD account)
-(insert contacts-table contact_id {
-"contact_id":contact_id
-,"account":account
-,"label":label
-,"created_by":created_by
-})
-)
-)
-
-(defun update-contact(contact_id:string account:string label:string created_by:string)
   
-(with-read contacts-table contact_id {"created_by":=contact_created_by
-}
-(enforce (= created_by contact_created_by) "Un authorized")
-(with-capability(ACCOUNT_GUARD created_by)
-(update contacts-table contact_id {
-  "contact_id":contact_id
-  ,"account":account
-  ,"label":label
-  ,"created_by":created_by
-})
-  )
-)
-)
+  (defun create-contacts(contact_id:string
+              account:string 
+              label:string
+              created_by:string)
+            (with-capability(ACCOUNT_GUARD account)
+            (insert contacts-table contact_id {
+            "contact_id":contact_id
+            ,"account":account
+            ,"label":label
+            ,"created_by":created_by
+            })
+            )
+            )
+  (defun update-contact(contact_id:string account:string label:string created_by:string)
+  
+            (with-read contacts-table contact_id {"created_by":=contact_created_by
+            }
+            (enforce (= created_by contact_created_by) "Un authorized")
+            (with-capability(ACCOUNT_GUARD created_by)
+            (update contacts-table contact_id {
+              "contact_id":contact_id
+              ,"account":account
+              ,"label":label
+              ,"created_by":created_by
+            })
+              )
+            )
+            )
+    (defun get-contacts(created_by:string)
+            @doc "Return all the contacts created by a account"
+            (select contacts-table (where 'created_by (= created_by)))
+            )
 
-(defun get-contacts(created_by:string)
-@doc "Return all the contacts created by a account"
-(select contacts-table (where 'created_by (= created_by)))
-)
   )
-
 
 (create-table device-table)
 (create-table device-data-table)
