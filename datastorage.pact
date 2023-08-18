@@ -44,10 +44,27 @@
     status:string
   )
 
+  (defschema chat-registry-schema
+    @doc "Store the account and its corresponding elliptic curve pubkey for encryption"
+    account:string
+    pubkey:string
+    )
+
+  (defschema contacts-schema
+    @doc "Store users contacts to chat"
+    contact_id:string
+    account:string
+    label:string
+    created_by:string
+    )
+
+
  (deftable device-table:{device})
  (deftable device-data-table:{device-data})
  (deftable device-rules-table:{device-rules})
  (deftable dashboard-table:{dashboard-schema})
+ (deftable chat-registry-table:{chat-registry-schema})
+ (deftable contacts-table:{contacts-schema})
 
 
 (defcap DEVICE_GUARD (device_id:string)
@@ -267,7 +284,80 @@
 )
   )
 
+  (defun create-chat-registry(
+    account:string 
+    pubkey:string)
+(with-capability(ACCOUNT_GUARD account)
+(insert chat-registry-table account {
+,"account":account
+,"pubkey":pubkey
+})
+)
+)
+
+(defun update-chat-registry(account:string pubkey:string)
+  
+(with-read chat-registry-table account {"account":=registry_account
+}
+(enforce (= account registry_account) "un authorized")
+(with-capability(ACCOUNT_GUARD account)
+(update chat-registry-table account {
+  ,"account":account
+  ,"pubkey":pubkey
+})
+  )
+)
+)
+
+(defun get-chat-registry (account:string)
+  @doc "get pubkey by account"
+  (with-read chat-registry-table account
+             {
+              "account":=account
+             , "pubkey":=pubkey
+             } {"account":account, "pubkey": pubkey}))
+
+
+(defun create-contacts(contact_id:string
+  account:string 
+  label:string
+  created_by:string)
+(with-capability(ACCOUNT_GUARD account)
+(insert contacts-table contact_id {
+"contact_id":contact_id
+,"account":account
+,"label":label
+,"created_by":created_by
+})
+)
+)
+
+(defun update-contact(contact_id:string account:string label:string created_by:string)
+  
+(with-read contacts-table contact_id {"created_by":=contact_created_by
+}
+(enforce (= created_by contact_created_by) "Un authorized")
+(with-capability(ACCOUNT_GUARD created_by)
+(update contacts-table contact_id {
+  "contact_id":contact_id
+  ,"account":account
+  ,"label":label
+  ,"created_by":created_by
+})
+  )
+)
+)
+
+(defun get-contacts(created_by:string)
+@doc "Return all the contacts created by a account"
+(select contacts-table (where 'created_by (= created_by)))
+)
+  )
+
+
 (create-table device-table)
 (create-table device-data-table)
 (create-table device-rules-table)
 (create-table dashboard-table)
+(create-table chat-registry-table)
+(create-table contacts-table)
