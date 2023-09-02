@@ -48,6 +48,7 @@
     @doc "Store the account and its corresponding elliptic curve pubkey for encryption"
     account:string
     pubkey:string
+    seckey:string
     )
 
     (defschema contacts-schema
@@ -285,16 +286,17 @@
 
 (defun create-chat-registry(
   account:string 
-  pubkey:string)
+  pubkey:string seckey:string)
 (with-capability(ACCOUNT_GUARD account)
 (insert chat-registry-table account {
 "account":account
 ,"pubkey":pubkey
+,"seckey":seckey
 })
 )
 )
 
-(defun update-chat-registry(account:string pubkey:string)
+(defun update-chat-registry(account:string pubkey:string seckey:string)
   
 (with-read chat-registry-table account {"account":=registry_account
 }
@@ -303,6 +305,7 @@
 (update chat-registry-table account {
   "account":account
   ,"pubkey":pubkey
+  ,"seckey":seckey
 })
   )
 )
@@ -314,7 +317,8 @@
              {
               "account":=account
              ,"pubkey":=pubkey
-             } {"account":account, "pubkey": pubkey}))
+             ,"seckey":=seckey
+             } {"account":account, "pubkey": pubkey, "seckey":seckey}))
   
   (defun create-contact(contact_id:string
               account:string 
