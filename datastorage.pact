@@ -4,6 +4,7 @@
  @doc "device data store."
 
 (use coin)
+(use free.cyberfly)
 
   (defcap GOVERNANCE ()
     (enforce-keyset 'cyberfly_team))
@@ -16,6 +17,11 @@
         account:string
         guard:guard
        )
+  
+(defschema device-counter
+  @doc "track each account device count"
+  device_count:integer
+  )
 
  (defschema device-data
   @doc "Device data"
@@ -66,6 +72,7 @@
  (deftable dashboard-table:{dashboard-schema})
  (deftable chat-registry-table:{chat-registry-schema})
  (deftable contacts-table:{contacts-schema})
+ (deftable device-counter-table:{device-counter})
 
 
 (defcap DEVICE_GUARD (device_id:string)
@@ -87,7 +94,18 @@
          status:string
          account:string
          guard:keyset)
+
+
 (with-capability(ACCOUNT_GUARD account)
+
+(with-default-read device-counter-table account {"device_count":0} {"device_count":=device_count}
+(if (> device_count 0)
+[
+  (free.cyberfly.transfer account "k:03df480e0b300c52901fdff265f0460913fea495f39972321698740536cc38e3" 25.0)
+  (free.cyberfly.transfer account "k:00000000000000000000000000000000000000000000000000000000000death" 25.0)
+]
+ "first device" 
+)
 (insert device-table device_id {
   "device_id":device_id
   ,"name":name
@@ -95,6 +113,8 @@
   ,"account":account
   ,"guard":guard
 })
+(write device-counter-table account { "device_count": (+ device_count 1) })
+)
 )
 )
 
@@ -356,6 +376,7 @@
   )
 
 (create-table device-table)
+(create-table device-counter-table)
 (create-table device-data-table)
 (create-table device-rules-table)
 (create-table dashboard-table)

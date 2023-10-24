@@ -1,5 +1,5 @@
 (namespace "free")
-(define-keyset 'cyberfly_team (read-keyset "cyberfly_team"))
+(define-keyset "free.cyberfly_team" (read-keyset "cyberfly_team"))
 (module cyberfly-account-gas-station GOVERNANCE
 
   (implements gas-payer-v1)
@@ -25,9 +25,9 @@
     )
     (enforce (= "exec" (at "tx-type" (read-msg))) "Inside an exec")
     (enforce (= 1 (length (at "exec-code" (read-msg)))) "Tx of only one pact function")
-    (enforce-one "Anyone of these should succeed" [(enforce (= "(coin.create-account" (take 20 (at 0 (at "exec-code" (read-msg))))) "only Coin.create-account function") (enforce (= "(free.cyberfly_devices." (take 23 (at 0 (at "exec-code" (read-msg))))) "Only Cyberfly smart contract")] )
-    (enforce-below-or-at-gas-price 0.00000001)
-    (enforce-below-or-at-gas-limit 1500)
+    (enforce-one "Anyone of these should succeed" [(enforce (= "(coin.create-account" (take 20 (at 0 (at "exec-code" (read-msg))))) "only Coin.create-account function") (enforce (= "(free.cyberfly" (take 14 (at 0 (at "exec-code" (read-msg))))) "Only Cyberfly smart contract")] )
+    (enforce-below-or-at-gas-price 0.0000001)
+    (enforce-below-or-at-gas-limit 2000)
     (compose-capability (ALLOW_GAS))
   )
 
