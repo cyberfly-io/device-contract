@@ -17,6 +17,14 @@
         account:string
         guard:guard
        )
+
+
+
+(defschema user-config-schema
+  @doc "Store Iot platform users config"
+  account:string
+  dashboard_db:string
+)
   
 (defschema device-counter
   @doc "track each account device count"
@@ -73,6 +81,7 @@
  (deftable chat-registry-table:{chat-registry-schema})
  (deftable contacts-table:{contacts-schema})
  (deftable device-counter-table:{device-counter})
+ (deftable user-config-table:{user-config-schema})
 
 
 (defcap DEVICE_GUARD (device_id:string)
@@ -88,6 +97,28 @@
     (at "guard" (coin.details account))
 )
 )
+
+(defun add-dashboard-address(account:string
+                             dashboard_id:string
+                             db_address:string
+                             )
+  (with-capability(ACCOUNT_GUARD account)
+
+  (insert user-config-table dashboard_id {
+    "dashboard_id":dashboard_id,
+    "account":account,
+    "dashboard_db":db_address
+  } )
+    
+    )
+
+)
+
+(defun get-dashboard-address(account:string)
+(select user-config-table ["dashboard_id", "account", "dashboard_db" ] (where 'account (= account))
+)
+)
+
 
 (defun new-device(device_id:string
          name:string
@@ -382,3 +413,4 @@
 (create-table dashboard-table)
 (create-table chat-registry-table)
 (create-table contacts-table)
+(create-table user-config-table)
