@@ -23,6 +23,7 @@
 (defschema user-config-schema
   @doc "Store Iot platform users config"
   account:string
+  dashboard_id:string
   dashboard_db:string
 )
   
