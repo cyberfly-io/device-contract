@@ -4,7 +4,7 @@
  @doc "device data store."
 
 (use coin)
-(use free.cyberfly)
+(use free.cyberfly_token)
 
   (defcap GOVERNANCE ()
     (enforce-keyset 'cyberfly_team))
@@ -115,6 +115,27 @@
 
 )
 
+(defun update-dashboard-address(account:string
+  dashboard_id:string
+  db_address:string
+  )
+(with-capability(ACCOUNT_GUARD account)
+
+(with-read user-config-table dashboard_id {"account":=dash_account} 
+
+(enforce (= account dash_account) "Account not matching")
+
+(update user-config-table dashboard_id {
+  "dashboard_db":db_address
+  } )
+)
+
+
+
+)
+
+)
+
 (defun get-dashboard-address(account:string)
 (select user-config-table ["dashboard_id", "account", "dashboard_db" ] (where 'account (= account))
 )
@@ -133,8 +154,8 @@
 (with-default-read device-counter-table account {"device_count":0} {"device_count":=device_count}
 (if (> device_count 0)
 [
-  (free.cyberfly.transfer account "k:03df480e0b300c52901fdff265f0460913fea495f39972321698740536cc38e3" 25.0)
-  (free.cyberfly.transfer account "k:00000000000000000000000000000000000000000000000000000000000death" 25.0)
+  (free.cyberfly_token.transfer account "k:03df480e0b300c52901fdff265f0460913fea495f39972321698740536cc38e3" 25.0)
+  (free.cyberfly_token.transfer account "k:0000000000000000000000000000000000000000000000000000000000000000" 25.0)
 ]
  "first device" 
 )
