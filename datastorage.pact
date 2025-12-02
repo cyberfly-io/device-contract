@@ -1,5 +1,5 @@
 (namespace "free")
-(define-keyset "free.cyberfly_team" (read-keyset "cyberfly_team"))
+(define-keyset "free.cyberfly_team_device" (read-keyset "cyberfly_team"))
 (module cyberfly_devices GOVERNANCE
  @doc "device data store."
 
@@ -7,7 +7,7 @@
 (use free.cyberfly_token)
 
   (defcap GOVERNANCE ()
-    (enforce-keyset 'cyberfly_team))
+    (enforce-keyset "free.cyberfly_team_device"))
 
  (defschema device
         @doc "Device Register"
@@ -16,28 +16,14 @@
         status:string
         account:string
         guard:guard
+        access:[string]
        )
-
-
-
-(defschema user-config-schema
-  @doc "Store Iot platform users config"
-  account:string
-  dashboard_id:string
-  dashboard_db:string
-)
   
 (defschema device-counter
   @doc "track each account device count"
   device_count:integer
   )
 
- (defschema device-data
-  @doc "Device data"
-  data_id:string
-  data:string
-  device_id:string
- )
 
  (defschema device-rules
        @doc "Register Rules for device data"
@@ -49,41 +35,10 @@
         device_id:string
         )
 
-  (defschema dashboard-schema 
-    @doc "store dashboard layout and its widget properties"
-    dash_id:string
-    title:string
-    layout:string
-    props:string
-    account:string
-    status:string
-  )
-
-  (defschema chat-registry-schema
-    @doc "Store the account and its corresponding elliptic curve pubkey for encryption"
-    account:string
-    pubkey:string
-    seckey:string
-    )
-
-    (defschema contacts-schema
-      @doc "Store users contacts to chat"
-      contact_id:string
-      account:string
-      label:string
-      created_by:string
-      )
-
 
  (deftable device-table:{device})
- (deftable device-data-table:{device-data})
  (deftable device-rules-table:{device-rules})
- (deftable dashboard-table:{dashboard-schema})
- (deftable chat-registry-table:{chat-registry-schema})
- (deftable contacts-table:{contacts-schema})
  (deftable device-counter-table:{device-counter})
- (deftable user-config-table:{user-config-schema})
-
 
 (defcap DEVICE_GUARD (device_id:string)
  (with-read device-table device_id{"guard":=guard, "account":=account}
@@ -96,48 +51,6 @@
 (enforce (= "k:" (take 2 account)) "For security, only support k: accounts")
 (enforce-guard   
     (at "guard" (coin.details account))
-)
-)
-
-(defun add-dashboard-address(account:string
-                             dashboard_id:string
-                             db_address:string
-                             )
-  (with-capability(ACCOUNT_GUARD account)
-
-  (insert user-config-table dashboard_id {
-    "dashboard_id":dashboard_id,
-    "account":account,
-    "dashboard_db":db_address
-  } )
-    
-    )
-
-)
-
-(defun update-dashboard-address(account:string
-  dashboard_id:string
-  db_address:string
-  )
-(with-capability(ACCOUNT_GUARD account)
-
-(with-read user-config-table dashboard_id {"account":=dash_account} 
-
-(enforce (= account dash_account) "Account not matching")
-
-(update user-config-table dashboard_id {
-  "dashboard_db":db_address
-  } )
-)
-
-
-
-)
-
-)
-
-(defun get-dashboard-address(account:string)
-(select user-config-table ["dashboard_id", "account", "dashboard_db" ] (where 'account (= account))
 )
 )
 
@@ -165,6 +78,7 @@
   ,"status":status
   ,"account":account
   ,"guard":guard
+  ,"access":[]
 })
 (write device-counter-table account { "device_count": (+ device_count 1) })
 )
@@ -189,22 +103,36 @@
 })
 ))
 
- (defun new-device-data (data_id:string
-                     data:string
-                     device_id:string
-                     )
- @doc "update data"
-(with-read device-table device_id
-  {"status":=status}
- (enforce (= status "active") "device inactive")
-(with-capability (DEVICE_GUARD device_id)
- (insert device-data-table data_id
-         { "data_id":data_id
-         ,"data":data
-         ,"device_id":device_id
-         })
-)))
+(defun add-device-access(device_id:string pubkey:string)
+  @doc "Add a pubkey to device access list"
+  (with-capability (DEVICE_GUARD device_id)
+    (with-read device-table device_id {"access":=current_access}
+      (enforce (not (contains pubkey current_access)) "Pubkey already has access")
+      (update device-table device_id {
+        "access": (+ current_access [pubkey])
+      })
+    )
+  )
+)
 
+(defun remove-device-access(device_id:string pubkey:string)
+  @doc "Remove a pubkey from device access list"
+  (with-capability (DEVICE_GUARD device_id)
+    (with-read device-table device_id {"access":=current_access}
+      (enforce (contains pubkey current_access) "Pubkey does not have access")
+      (update device-table device_id {
+        "access": (filter (compose (not) (= pubkey)) current_access)
+      })
+    )
+  )
+)
+
+(defun get-device-access(device_id:string)
+  @doc "Get list of pubkeys with access to device"
+  (with-read device-table device_id {"access":=access}
+    access
+  )
+)
 
 
 (defun new-device-rule(rule_id:string
@@ -259,23 +187,12 @@
  (with-read device-table device_id {
          "name":=name
          ,"status":=status
-         , "guard":=guard
+         ,"guard":=guard
+         ,"access":=access
  }
- {"device_id":device_id , "name":name, "status":status, "guard":guard  })
+ {"device_id":device_id , "name":name, "status":status, "guard":guard, "access":access  })
 )
 
-(defun auth-device(device_id:string)
- (with-read device-table device_id {
-         "name":=name
-         ,"status":=status
-         ,"guard":=guard
- }
- (enforce (= status "active") "device inactive")
- (with-capability (DEVICE_GUARD device_id)
- {"device_id":device_id , "name":name, "status":status, "guard":guard  }
- )
- )
-)
 
 (defun get-account-devices(account:string)
 (select device-table ["device_id", "name", "status", "guard"] (where 'account (= account))
@@ -287,13 +204,6 @@
  (select device-table ["device_id", "name", "status", "account"] (where 'status (= "active"))
 )))
 
- (defun read-data (data_id:string)
-  @doc "Read data by id"
-  (with-read device-data-table data_id
-             {
-              "data":=data
-             , "device_id":=device_id
-             } {"data":data, "device_id": device_id}))
 
 (defun read-rule (rule_id:string)
              @doc "Read rule by id"
@@ -309,130 +219,15 @@
                            ,"status":status})
 )
 
-  (defun read-device-data(device_id:string)
-  (select device-data-table (where 'device_id (= device_id))
-  ))
+
 
   (defun read-device-rules(device_id:string)
   (select device-rules-table (where 'device_id (= device_id))
   ))
 
-  (defun create-dashboard(dash_id:string
-                          title:string
-                          layout:string
-                          props:string 
-                          account:string 
-                          status:string)
-  (with-capability(ACCOUNT_GUARD account)
-  (insert dashboard-table dash_id {
-    "dash_id":dash_id
-    ,"title":title
-    ,"layout":layout
-    ,"props":props
-    ,"account":account
-    ,"status":status
-  })
-  )
-  )
-
-  (defun update-dashboard(dash_id:string title:string layout:string props:string account:string status:string)
-  
-  (with-read dashboard-table dash_id {"account":=dash_account
-  }
-  (enforce (= account dash_account) "account not matching")
-  (with-capability(ACCOUNT_GUARD account)
-  (update dashboard-table dash_id {
-    "dash_id":dash_id
-    ,"title":title
-    ,"layout":layout
-    ,"props":props
-    ,"account":account
-    ,"status":status
-  })
-    )
-  )
-  )
-
-  (defun get-dashboard(account:string)
-(select dashboard-table (where 'account (= account)) )
-)
-
-(defun create-chat-registry(
-  account:string 
-  pubkey:string seckey:string)
-(with-capability(ACCOUNT_GUARD account)
-(insert chat-registry-table account {
-"account":account
-,"pubkey":pubkey
-,"seckey":seckey
-})
-)
-)
-
-(defun update-chat-registry(account:string pubkey:string seckey:string)
-  
-(with-read chat-registry-table account {"account":=registry_account
-}
-(enforce (= account registry_account) "un authorized")
-(with-capability(ACCOUNT_GUARD account)
-(update chat-registry-table account {
-  "account":account
-  ,"pubkey":pubkey
-  ,"seckey":seckey
-})
-  )
-)
-)
-
-(defun get-chat-registry (account:string)
-  @doc "get pubkey by account"
-  (with-read chat-registry-table account
-             {
-              "account":=account
-             ,"pubkey":=pubkey
-             ,"seckey":=seckey
-             } {"account":account, "pubkey": pubkey, "seckey":seckey}))
-  
-  (defun create-contact(contact_id:string
-              account:string 
-              label:string
-              created_by:string)
-            (with-capability(ACCOUNT_GUARD created_by)
-            (insert contacts-table contact_id {
-            "contact_id":contact_id
-            ,"account":account
-            ,"label":label
-            ,"created_by":created_by
-            })
-            )
-            )
-  (defun update-contact(contact_id:string account:string label:string created_by:string)
-  
-            (with-read contacts-table contact_id {"created_by":=contact_created_by
-            }
-            (enforce (= created_by contact_created_by) "Un authorized")
-            (with-capability(ACCOUNT_GUARD created_by)
-            (update contacts-table contact_id {
-              "contact_id":contact_id
-              ,"account":account
-              ,"label":label
-              ,"created_by":created_by
-            })
-              )
-            )
-            )
-    (defun get-contacts(created_by:string)
-            @doc "Return all the contacts created by a account"
-            (select contacts-table (where 'created_by (= created_by)))
-            )
 
   )
 
 (create-table device-table)
 (create-table device-counter-table)
-(create-table device-data-table)
 (create-table device-rules-table)
-(create-table dashboard-table)
-(create-table chat-registry-table)
-(create-table contacts-table)
-(create-table user-config-table)
